@@ -10,5 +10,6 @@ Initial commit is based on original Borland Delphi 3 sources (there is ASM block
 # TODO Ideas
 - More Tile formats
 - More Tile Arrange methods
+- NES UNIF ROM native support
 - Apply CDL file to shade the used/unused aread auromatically
 - Palette editor / selector out of file
