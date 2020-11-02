@@ -1,5 +1,5 @@
 # TileMapper
-Draw Map with Tiles ouе oа ROM files directly. Load Any NES or GB file to begin a Journey to the world of the hidden pictures lol.
+Draw Map with Tiles out of ROM files directly. Load Any NES or GB file to begin a Journey to the world of the hidden pictures lol.
 
 Initial commit is based on original Borland Delphi 3 sources (there is ASM blocks inside!)
 
