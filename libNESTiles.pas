@@ -282,6 +282,7 @@ Function NESFileRead(Name: String; var NES: TNESFile): Integer;
 var
   IFile: THandle;
   err: dword;
+  tmp: longint;
 begin
   result := 0;
   IFile := CreateFile(PChar(Name), GENERIC_READ, FILE_SHARE_READ, nil,
@@ -302,6 +303,8 @@ begin
 
     if Header.Sign = $1A53454E then
     begin
+      TileFormat := TILE_NES;
+
       PRGSize := Header.PRGBank * 16384;
       CHRSize := Header.CHRBank * 8192;
 
@@ -333,6 +336,19 @@ begin
     end
     else
     begin
+
+      // check if loaded file is in GB format, then set the proper TILE format automatically.
+      SetFilePointer(IFile, $104, 0, FILE_BEGIN);
+      if not ReadFile(IFile, tmp, 4, err, nil) then
+      begin
+        result := GetLastError;
+        Exit;
+      end;
+      if(tmp = $6666EDCE) then
+      begin
+        TileFormat := TILE_GB;
+      end;
+      // load data RAW two copies of the same file in CHR and TILE buffers.
       SetFilePointer(IFile, 0, 0, FILE_BEGIN);
       PRGSize := GetFileSize(IFile, nil);
       CHRSize := PRGSize;

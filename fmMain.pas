@@ -51,8 +51,6 @@ type
     mnSaveNES: TMenuItem;
     mnDecodeView: TMenuItem;
     mnPLain: TMenuItem;
-    N4: TMenuItem;
-    mnKirbyDecode: TMenuItem;
     mnNormalDraw: TMenuItem;
     mn8x16Draw: TMenuItem;
     N5: TMenuItem;
@@ -127,6 +125,8 @@ type
     fXOrigin, fYOrigin: Integer;
     procedure RedrawTilemap;
     procedure RedrawPatterns;
+    procedure LoadInit;
+    procedure TileFormatUpdate;
   public
     { Public declarations }
   end;
@@ -265,6 +265,21 @@ begin
   Close;
 end;
 
+procedure TfmMainDialog.LoadInit;
+begin
+  TileFormatUpdate;
+  fisNESLoaded := true;
+  mnLoadTilemap.Enabled := true;
+  mnLoadPatterns.Enabled := true;
+  mnDecodeView.Enabled := true;
+  fisTilemapModified := False;
+  sbMain.Panels[1].Text := '';
+  TilemapOffset := 0;
+  PatternsOffset := 0;
+  RedrawPatterns;
+  RedrawTilemap;
+end;
+
 procedure TfmMainDialog.mnLoaddFromNESClick(Sender: TObject);
 begin
   with odOpenFile as TOpenDialog do
@@ -279,16 +294,7 @@ begin
         Application.MessageBox('Error Opening File', 'Error!', 0);
         Close;
       end;
-      fisNESLoaded := true;
-      mnLoadTilemap.Enabled := true;
-      mnLoadPatterns.Enabled := true;
-      mnDecodeView.Enabled := true;
-      fisTilemapModified := False;
-      sbMain.Panels[1].Text := '';
-      TilemapOffset := 0;
-      PatternsOffset := 0;
-      RedrawPatterns;
-      RedrawTilemap;
+      LoadInit;
     end;
   end;
 end;
@@ -856,20 +862,29 @@ begin
   RedrawPatterns;
 end;
 
+procedure TfmMainDialog.TileFormatUpdate;
+begin
+  mnNESTile.Checked := false;
+  mnGBTile.Checked := false;
+  case TileFormat of
+    TILE_NES:
+      mnNESTile.Checked := true;
+    TILE_GB:
+      mnGBTile.Checked := true;
+  end;
+  RedrawPatterns;
+end;
+
 procedure TfmMainDialog.mnNESTileClick(Sender: TObject);
 begin
-  mnNESTile.Checked := true;
-  mnGBTile.Checked := False;
   TileFormat := TILE_NES;
-  RedrawPatterns;
+  TileFormatUpdate;
 end;
 
 procedure TfmMainDialog.mnGBTileClick(Sender: TObject);
 begin
-  mnNESTile.Checked := False;
-  mnGBTile.Checked := true;
   TileFormat := TILE_GB;
-  RedrawPatterns;
+  TileFormatUpdate;
 end;
 
 procedure TfmMainDialog.mnLoadPatternsClick(Sender: TObject);
@@ -890,22 +905,14 @@ begin
   end;
 end;
 
+
 procedure TfmMainDialog.FormActivate(Sender: TObject);
 begin
   if ParamCount = 1 then
   begin
     if NESFileRead(ParamStr(1), fNESFile) <> 0 then
       Application.MessageBox('Error Opening File', 'Error!', 0);
-    fisNESLoaded := true;
-    mnLoadTilemap.Enabled := true;
-    mnLoadPatterns.Enabled := true;
-    mnDecodeView.Enabled := true;
-    fisTilemapModified := False;
-    sbMain.Panels[1].Text := '';
-    TilemapOffset := 0;
-    PatternsOffset := 0;
-    RedrawPatterns;
-    RedrawTilemap;
+      LoadInit;
   end;
 end;
 
