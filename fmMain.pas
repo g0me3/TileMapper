@@ -102,9 +102,6 @@ type
     procedure mnLoadPatternsClick(Sender: TObject);
     procedure mnSaveNESClick(Sender: TObject);
     procedure FormActivate(Sender: TObject);
-    procedure CheckBox1Click(Sender: TObject);
-    procedure CheckBox2Click(Sender: TObject);
-    procedure CheckBox3Click(Sender: TObject);
     procedure mn8x16DrawClick(Sender: TObject);
     procedure mnNormalDrawClick(Sender: TObject);
     procedure mnNESTileClick(Sender: TObject);
@@ -127,6 +124,7 @@ type
     procedure RedrawPatterns;
     procedure LoadInit;
     procedure TileFormatUpdate;
+    procedure DrawModeUpdate;
   public
     { Public declarations }
   end;
@@ -835,42 +833,49 @@ begin
   end;
 end;
 
-procedure TfmMainDialog.mnVerticalDrawClick(Sender: TObject);
+procedure TfmMainDialog.DrawModeUpdate;
 begin
-  mnVerticalDraw.Checked := true;
-  mn8x16Draw.Checked := False;
+  mnVerticalDraw.Checked := False;
   mnNormalDraw.Checked := False;
-  DrawMode := DRAW_VERTICAL;
+  mn8x16Draw.Checked := False;
+  case DrawMode of
+    DRAW_NORMAL:
+      mnNormalDraw.Checked := True;
+    DRAW_VERTICAL:
+      mnVerticalDraw.Checked := True;
+    DRAW_8X16:
+      mn8x16Draw.Checked := True;
+  end;
   RedrawPatterns;
 end;
 
-procedure TfmMainDialog.mn8x16DrawClick(Sender: TObject);
+procedure TfmMainDialog.mnVerticalDrawClick(Sender: TObject);
 begin
-  mnVerticalDraw.Checked := False;
-  mn8x16Draw.Checked := true;
-  mnNormalDraw.Checked := False;
-  DrawMode := DRAW_8X16;
-  RedrawPatterns;
+  DrawMode := DRAW_VERTICAL;
+  DrawModeUpdate;
 end;
 
 procedure TfmMainDialog.mnNormalDrawClick(Sender: TObject);
 begin
-  mnVerticalDraw.Checked := False;
-  mn8x16Draw.Checked := False;
-  mnNormalDraw.Checked := true;
   DrawMode := DRAW_NORMAL;
-  RedrawPatterns;
+  DrawModeUpdate;
+end;
+
+procedure TfmMainDialog.mn8x16DrawClick(Sender: TObject);
+begin
+  DrawMode := DRAW_8X16;
+  DrawModeUpdate;
 end;
 
 procedure TfmMainDialog.TileFormatUpdate;
 begin
-  mnNESTile.Checked := false;
-  mnGBTile.Checked := false;
+  mnNESTile.Checked := False;
+  mnGBTile.Checked := False;
   case TileFormat of
     TILE_NES:
-      mnNESTile.Checked := true;
+      mnNESTile.Checked := True;
     TILE_GB:
-      mnGBTile.Checked := true;
+      mnGBTile.Checked := True;
   end;
   RedrawPatterns;
 end;
@@ -914,24 +919,6 @@ begin
       Application.MessageBox('Error Opening File', 'Error!', 0);
       LoadInit;
   end;
-end;
-
-procedure TfmMainDialog.CheckBox1Click(Sender: TObject);
-begin
-  cbDrawPatternsGrid.Checked := not cbDrawPatternsGrid.Checked;
-  RedrawPatterns;
-end;
-
-procedure TfmMainDialog.CheckBox2Click(Sender: TObject);
-begin
-  cbDrawTilemapGrid.Checked := not cbDrawTilemapGrid.Checked;
-  RedrawTilemap;
-end;
-
-procedure TfmMainDialog.CheckBox3Click(Sender: TObject);
-begin
-  cbDrawUsedTiles.Checked := not cbDrawUsedTiles.Checked;
-  RedrawPatterns;
 end;
 
 end.

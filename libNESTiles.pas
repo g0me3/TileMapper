@@ -101,6 +101,8 @@ begin
   YY := Y shl 1;
   for j := 0 to 7 do
   begin
+    TileA := 0;
+    TileB := 0;
     case TileFormat of
       TILE_NES:
         begin
@@ -338,7 +340,7 @@ begin
     begin
 
       // check if loaded file is in GB format, then set the proper TILE format automatically.
-      SetFilePointer(IFile, $104, 0, FILE_BEGIN);
+      SetFilePointer(IFile, $104, nil, FILE_BEGIN);
       if not ReadFile(IFile, tmp, 4, err, nil) then
       begin
         result := GetLastError;
@@ -349,7 +351,7 @@ begin
         TileFormat := TILE_GB;
       end;
       // load data RAW two copies of the same file in CHR and TILE buffers.
-      SetFilePointer(IFile, 0, 0, FILE_BEGIN);
+      SetFilePointer(IFile, 0, nil, FILE_BEGIN);
       PRGSize := GetFileSize(IFile, nil);
       CHRSize := PRGSize;
       GetMem(PRGData, PRGSize);
