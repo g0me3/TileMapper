@@ -31,8 +31,9 @@ const
   DRAW_NORMAL = 0;
   DRAW_VERTICAL = 1;
   DRAW_8X16 = 2;
-  TILE_NES = 0;
-  TILE_GB = 1;
+  TILE_1BPP = 0;
+  TILE_NES = 1;
+  TILE_GB = 2;
 
 const
   DrawMode: Byte = DRAW_NORMAL;
@@ -104,6 +105,11 @@ begin
     TileA := 0;
     TileB := 0;
     case TileFormat of
+      TILE_1BPP:
+        begin
+          TileA := Tile[j];
+          TileB := 0;
+        end;
       TILE_NES:
         begin
           TileA := Tile[j];
@@ -135,14 +141,23 @@ var
   i, j: Integer;
   Offset: longint;
   CurTile: TTile;
+  TileLen: Integer;
 begin
   with NES do
     if PRGData <> nil then
     begin
       Offset := longint(CHRData) + CHROffset;
+      case TileFormat of
+        TILE_1BPP:
+            TileLen := 8;
+        TILE_NES:
+            TileLen := 16;
+        TILE_GB:
+            TileLen := 16;
+      end;
       for i := 0 to 255 do
       begin
-        for j := 0 to 15 do
+        for j := 0 to (TileLen - 1) do
           if ((Offset + j) < (longint(CHRData) + CHRSize)) then
             CurTile[j] := Byte(ptr(Offset + j)^)
           else
@@ -156,7 +171,7 @@ begin
           DRAW_VERTICAL:
             DrawTile(Bitmap, (i shr 4) shl 3, (i mod 16) shl 3, CurTile);
         end;
-        Inc(Offset, 16);
+        Inc(Offset, TileLen);
       end;
     end;
 end;
@@ -177,7 +192,14 @@ begin
         begin
           if PRGOffset + Offset < PRGSize then
           begin
-            Tile := Byte(ptr(longint(PRGData) + PRGOffset + Offset)^) shl 4;
+            case TileFormat of
+            TILE_1BPP:
+              Tile := Byte(ptr(longint(PRGData) + PRGOffset + Offset)^) shl 3;
+            TILE_NES:
+              Tile := Byte(ptr(longint(PRGData) + PRGOffset + Offset)^) shl 4;
+            TILE_GB:
+              Tile := Byte(ptr(longint(PRGData) + PRGOffset + Offset)^) shl 4;
+            end;
             DrawTile(Bitmap, j shl 3, i shl 3,
               TTile(ptr(longint(CHRData) + CHROffset + Tile)^))
           end

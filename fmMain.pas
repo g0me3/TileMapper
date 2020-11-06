@@ -12,7 +12,7 @@ type
     mmMain: TMainMenu;
     mnFile: TMenuItem;
     mnExit: TMenuItem;
-    mnLoaddFromNES: TMenuItem;
+    mnLoadFromNES: TMenuItem;
     odOpenFile: TOpenDialog;
     spbTilemapUp: TSpeedButton;
     spbTilemapDown: TSpeedButton;
@@ -54,12 +54,13 @@ type
     mnNormalDraw: TMenuItem;
     mn8x16Draw: TMenuItem;
     N5: TMenuItem;
-    mnNESTile: TMenuItem;
-    mnGBTile: TMenuItem;
+    mnNESTiles: TMenuItem;
+    mnGBTiles: TMenuItem;
+    mn1BPPTiles: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure mnExitClick(Sender: TObject);
-    procedure mnLoaddFromNESClick(Sender: TObject);
+    procedure mnLoadFromNESClick(Sender: TObject);
     procedure spbTilemapUpClick(Sender: TObject);
     procedure spbTilemapDownClick(Sender: TObject);
     procedure FormPaint(Sender: TObject);
@@ -104,8 +105,9 @@ type
     procedure FormActivate(Sender: TObject);
     procedure mn8x16DrawClick(Sender: TObject);
     procedure mnNormalDrawClick(Sender: TObject);
-    procedure mnNESTileClick(Sender: TObject);
-    procedure mnGBTileClick(Sender: TObject);
+    procedure mnNESTilesClick(Sender: TObject);
+    procedure mnGBTilesClick(Sender: TObject);
+    procedure mn1BPPTilesClick(Sender: TObject);
   private
     { Private declarations }
     fPatterns: TBitmap;
@@ -120,11 +122,14 @@ type
     fDraggedTile: Integer;
     fCurTile: Integer;
     fXOrigin, fYOrigin: Integer;
+    fTileName: string;
+    fPatternName: string;
     procedure RedrawTilemap;
     procedure RedrawPatterns;
     procedure LoadInit;
     procedure TileFormatUpdate;
     procedure DrawModeUpdate;
+    procedure SetApplicationTitle;
   public
     { Public declarations }
   end;
@@ -215,6 +220,34 @@ begin
   Canvas.Draw(PATTERNS_LEFT, PATTERNS_TOP, fPatterns);
 end;
 
+procedure TfmMainDialog.SetApplicationTitle;
+var
+  tmpTitle: string;
+begin
+  tmpTitle := 'TileMapper';
+  if fTileName = fPatternName then
+  begin
+    if fTileName = '' then
+      tmpTitle := tmpTitle + ' [NON]'
+    else
+      tmpTitle := tmpTitle + ' [File: "' + fTileName + '"]';
+  end
+  else
+  begin
+    tmpTitle := tmpTitle + ' [';
+    if fTileName <> '' then
+      tmpTitle := tmpTitle + 'TILE: "' + fTileName + '"'
+    else
+      tmpTitle := tmpTitle + 'TILE: NON';
+    if fPatternName <> '' then
+      tmpTitle := tmpTitle + ' CHR: "' + fPatternName + '"'
+    else
+      tmpTitle := tmpTitle + ' CHR: NON';
+    tmpTitle := tmpTitle + ']';
+  end;
+  fmMainDialog.Caption := tmpTitle;
+end;
+
 procedure TfmMainDialog.FormCreate(Sender: TObject);
 begin
   fPatterns := TBitmap.Create;
@@ -241,13 +274,17 @@ begin
   fisTilemapChanged := False;
   fisTilemapModified := False;
   fCurTile := 0;
+  fTileName := '';
+  fPatternName := '';
   mnNormalDraw.Checked := true;
   mnVerticalDraw.Checked := False;
   mn8x16Draw.Checked := False;
-  mnNESTile.Checked := true;
-  mnGBTile.Checked := False;
+  mn1BPPTiles.Checked := true;
+  mnNESTiles.Checked := true;
+  mnGBTiles.Checked := False;
   RedrawTilemap;
   RedrawPatterns;
+  SetApplicationTitle;
 end;
 
 procedure TfmMainDialog.FormDestroy(Sender: TObject);
@@ -255,6 +292,8 @@ begin
   fPatterns.Free;
   fTileMap.Free;
   NESFileFree(fNESFile);
+  fTileName := '';
+  fPatternName := '';
   fisNESLoaded := False;
 end;
 
@@ -278,7 +317,7 @@ begin
   RedrawTilemap;
 end;
 
-procedure TfmMainDialog.mnLoaddFromNESClick(Sender: TObject);
+procedure TfmMainDialog.mnLoadFromNESClick(Sender: TObject);
 begin
   with odOpenFile as TOpenDialog do
   begin
@@ -286,6 +325,8 @@ begin
     if Execute then
     begin
       NESFileFree(fNESFile);
+      fTileName := '';
+      fPatternName := '';
       fisNESLoaded := False;
       if NESFileRead(Filename, fNESFile) <> 0 then
       begin
@@ -293,6 +334,9 @@ begin
         Close;
       end;
       LoadInit;
+      fTileName := Filename;
+      fPatternName := Filename;
+      SetApplicationTitle;
     end;
   end;
 end;
@@ -312,6 +356,8 @@ begin
       TilemapOffset := 0;
       fisTilemapChanged := true;
       RedrawTilemap;
+      fTileName := Filename;
+      SetApplicationTitle;
     end;
   end;
 end;
@@ -869,24 +915,33 @@ end;
 
 procedure TfmMainDialog.TileFormatUpdate;
 begin
-  mnNESTile.Checked := False;
-  mnGBTile.Checked := False;
+  mnNESTiles.Checked := False;
+  mnGBTiles.Checked := False;
+  mn1BPPTiles.Checked := False;
   case TileFormat of
+    TILE_1BPP:
+      mn1BPPTiles.Checked := True;
     TILE_NES:
-      mnNESTile.Checked := True;
+      mnNESTiles.Checked := True;
     TILE_GB:
-      mnGBTile.Checked := True;
+      mnGBTiles.Checked := True;
   end;
   RedrawPatterns;
 end;
 
-procedure TfmMainDialog.mnNESTileClick(Sender: TObject);
+procedure TfmMainDialog.mn1BPPTilesClick(Sender: TObject);
+begin
+  TileFormat := TILE_1BPP;
+  TileFormatUpdate;
+end;
+
+procedure TfmMainDialog.mnNESTilesClick(Sender: TObject);
 begin
   TileFormat := TILE_NES;
   TileFormatUpdate;
 end;
 
-procedure TfmMainDialog.mnGBTileClick(Sender: TObject);
+procedure TfmMainDialog.mnGBTilesClick(Sender: TObject);
 begin
   TileFormat := TILE_GB;
   TileFormatUpdate;
@@ -906,6 +961,8 @@ begin
       end;
       PatternsOffset := 0;
       RedrawPatterns;
+      fPatternName := Filename;
+      SetApplicationTitle;
     end;
   end;
 end;
@@ -918,6 +975,9 @@ begin
     if NESFileRead(ParamStr(1), fNESFile) <> 0 then
       Application.MessageBox('Error Opening File', 'Error!', 0);
       LoadInit;
+      fTileName := ParamStr(1);
+      fPatternName := ParamStr(1);
+      SetApplicationTitle;
   end;
 end;
 
