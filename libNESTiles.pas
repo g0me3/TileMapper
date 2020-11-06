@@ -361,12 +361,7 @@ begin
       end;
       CHRSize := PRGSize;
       GetMem(CHRData, CHRSize);
-      SetFilePointer(IFile, 0, nil, FILE_BEGIN);
-      if not ReadFile(IFile, CHRData^, CHRSize, err, nil) then
-      begin
-        result := GetLastError;
-        Exit;
-      end;
+      Move(PRGData^, CHRData^, CHRSize);
     end;
   end;
   CloseHandle(IFile);
