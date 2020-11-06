@@ -4,7 +4,7 @@ Draw Map with Tiles out of ROM files directly. Load Any NES or GB file to begin 
 Initial commit is based on original Borland Delphi 3 sources (there is ASM blocks inside!)
 
 # Supported Systems
-- Tile: NES, GB
+- Tile: 1BPP, NES, GB
 - Roms: NES, RAW (any other threated as RAW)
 
 # TODO Ideas

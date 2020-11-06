@@ -13,7 +13,7 @@ type
     mnFile: TMenuItem;
     mnExit: TMenuItem;
     mnLoadFromNES: TMenuItem;
-    odOpenFile: TOpenDialog;
+    odOpen: TOpenDialog;
     spbTilemapUp: TSpeedButton;
     spbTilemapDown: TSpeedButton;
     spbPatternsUp: TSpeedButton;
@@ -46,7 +46,7 @@ type
     N2: TMenuItem;
     N3: TMenuItem;
     mnSaveTilemap: TMenuItem;
-    sdSaveTilemap: TSaveDialog;
+    sdSave: TSaveDialog;
     mnVerticalDraw: TMenuItem;
     mnSaveNES: TMenuItem;
     mnDecodeView: TMenuItem;
@@ -57,6 +57,9 @@ type
     mnNESTiles: TMenuItem;
     mnGBTiles: TMenuItem;
     mn1BPPTiles: TMenuItem;
+    pmnContextMenu: TPopupMenu;
+    pmnTilesGoto: TMenuItem;
+    pmnPatternsGoto: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure mnExitClick(Sender: TObject);
@@ -108,6 +111,8 @@ type
     procedure mnNESTilesClick(Sender: TObject);
     procedure mnGBTilesClick(Sender: TObject);
     procedure mn1BPPTilesClick(Sender: TObject);
+    procedure pmnPatternsGotoClick(Sender: TObject);
+    procedure pmnTilesGotoClick(Sender: TObject);
   private
     { Private declarations }
     fPatterns: TBitmap;
@@ -308,7 +313,7 @@ begin
   fisNESLoaded := true;
   mnLoadTilemap.Enabled := true;
   mnLoadPatterns.Enabled := true;
-  mnDecodeView.Enabled := true;
+//mnDecodeView.Enabled := true;
   fisTilemapModified := False;
   sbMain.Panels[1].Text := '';
   TilemapOffset := 0;
@@ -319,7 +324,7 @@ end;
 
 procedure TfmMainDialog.mnLoadFromNESClick(Sender: TObject);
 begin
-  with odOpenFile as TOpenDialog do
+  with odOpen as TOpenDialog do
   begin
     Filter := 'All Files|*.*';
     if Execute then
@@ -343,7 +348,7 @@ end;
 
 procedure TfmMainDialog.mnLoadTilemapClick(Sender: TObject);
 begin
-  with odOpenFile as TOpenDialog do
+  with odOpen as TOpenDialog do
   begin
     Filter := 'All Files|*.*';
     if Execute then
@@ -632,6 +637,48 @@ begin
   fisBarDragged := False;
 end;
 
+procedure TfmMainDialog.pmnPatternsGotoClick(Sender: TObject);
+var
+  value: string;
+begin
+  value := inputbox('Input Offset', 'Please type new Patterns starting Offset', '');
+  if(value <> '') then
+  begin
+    try
+      PatternsOffset := StrToInt(value);
+      if PatternsOffset < 0 then
+        PatternsOffset := 0;
+      if PatternsOffset >= fNESFile.CHRSize then
+        PatternsOffset := fNESFile.CHRSize - 1;
+      RedrawPatterns;
+    except
+      on Exception : EConvertError do
+      ShowMessage(Exception.Message);
+    end;
+  end;
+end;
+
+procedure TfmMainDialog.pmnTilesGotoClick(Sender: TObject);
+var
+  value: string;
+begin
+  value := inputbox('Input Offset', 'Please type new Tiles starting Offset', '');
+  if(value <> '') then
+  begin
+    try
+      TilemapOffset := StrToInt(value);
+      if TilemapOffset < 0 then
+        TilemapOffset := 0;
+      if TilemapOffset >= fNESFile.PRGSize then
+        TilemapOffset := fNESFile.PRGSize - 1;
+      RedrawTilemap;
+    except
+      on Exception : EConvertError do
+      ShowMessage(Exception.Message);
+    end;
+  end;
+end;
+
 procedure TfmMainDialog.FormMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
@@ -839,10 +886,10 @@ var
   Error: Integer;
 begin
   fisTilemapModified := False;
-  with sdSaveTilemap as TSaveDialog do
+  with sdSave as TSaveDialog do
   begin
-    InitialDir := ExtractFileDir(odOpenFile.Filename);
-    Filename := ExtractFileName(odOpenFile.Filename);
+    InitialDir := ExtractFileDir(odOpen.Filename);
+    Filename := ExtractFileName(odOpen.Filename);
     Filename := Copy(Filename, 1, Pos('.', Filename) - 1) + '.prg';
     if Execute then
     begin
@@ -862,10 +909,10 @@ var
   Error: Integer;
 begin
   fisTilemapModified := False;
-  with sdSaveTilemap as TSaveDialog do
+  with sdSave as TSaveDialog do
   begin
-    InitialDir := ExtractFileDir(odOpenFile.Filename);
-    Filename := ExtractFileName(odOpenFile.Filename);
+    InitialDir := ExtractFileDir(odOpen.Filename);
+    Filename := ExtractFileName(odOpen.Filename);
     if Execute then
     begin
       Error := NESFileSave(Filename, fNESFile);
@@ -949,7 +996,7 @@ end;
 
 procedure TfmMainDialog.mnLoadPatternsClick(Sender: TObject);
 begin
-  with odOpenFile as TOpenDialog do
+  with odOpen as TOpenDialog do
   begin
     Filter := 'All Files|*.*';
     if Execute then
