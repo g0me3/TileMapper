@@ -351,16 +351,17 @@ begin
         TileFormat := TILE_GB;
       end;
       // load data RAW two copies of the same file in CHR and TILE buffers.
-      SetFilePointer(IFile, 0, nil, FILE_BEGIN);
       PRGSize := GetFileSize(IFile, nil);
-      CHRSize := PRGSize;
       GetMem(PRGData, PRGSize);
+      SetFilePointer(IFile, 0, nil, FILE_BEGIN);
       if not ReadFile(IFile, PRGData^, PRGSize, err, nil) then
       begin
         result := GetLastError;
         Exit;
       end;
+      CHRSize := PRGSize;
       GetMem(CHRData, CHRSize);
+      SetFilePointer(IFile, 0, nil, FILE_BEGIN);
       if not ReadFile(IFile, CHRData^, CHRSize, err, nil) then
       begin
         result := GetLastError;
@@ -481,9 +482,15 @@ begin
   with NES do
   begin
     if PRGData <> nil then
+    begin
       FreeMem(PRGData, PRGSize);
+      PRGData := nil;
+    end;
     if CHRData <> nil then
+    begin
       FreeMem(CHRData, CHRSize);
+      CHRData := nil;
+    end;
   end;
 end;
 
