@@ -688,7 +688,7 @@ end;
 procedure TfmMainDialog.FormMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
-  XX: Integer;
+  XX, Sx: Integer;
 begin
   if fisNESLoaded and (Button = mbLeft) then
   begin
@@ -701,7 +701,11 @@ begin
     if Y < 0 then
       Y := 0;
     Y := Y shr 4;
-    if (X >= 0) and (X <= TilemapSx) and (Y >= 0) and (Y <= TilemapSy) then
+
+    if TilemapSx > 32 then
+      Sx := 32;
+
+    if (X >= 0) and (X < Sx) and (Y >= 0) and (Y < TilemapSy) then
     begin
       X := X shl 4;
       Y := Y shl 4;
@@ -743,7 +747,7 @@ procedure TfmMainDialog.FormMouseMove(Sender: TObject; Shift: TShiftState;
   X, Y: Integer);
 var
   CurPtr: Pointer;
-  XX: Integer;
+  XX, Sx: Integer;
 begin
   if fisNESLoaded then
   begin
@@ -766,10 +770,10 @@ begin
     if X < 0 then
       X := 0;
     X := X shr 4;
-    if X > TilemapSx then
-      X := TilemapSx;
+    if TilemapSx > 32 then
+      Sx := 32;
 
-    if ((X < TilemapSx) and (Y < TilemapSy)) then
+    if ((X < Sx) and (Y < TilemapSy)) then
     begin
       if (TilemapOffset + TilemapSx * Y + X) < fNESFile.PRGSize then
       begin
@@ -826,6 +830,7 @@ procedure TfmMainDialog.FormMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
   CurPtr: Pointer;
+  Sx: Integer;
 begin
   if fisNESLoaded then
   begin
@@ -843,7 +848,9 @@ begin
         Y := 0;
       Y := Y shr 4;
       sbMain.Panels[0].Text := '';
-      if (X >= 0) and (X <= TilemapSx) and (Y >= 0) and (Y <= TilemapSy)
+      if TilemapSx > 32 then
+        Sx := 32;
+      if (X >= 0) and (X < Sx) and (Y >= 0) and (Y <= TilemapSy)
       then
       begin
         CurPtr := fNESFile.PRGData;
