@@ -60,6 +60,7 @@ type
     pmnContextMenu: TPopupMenu;
     pmnTilesGoto: TMenuItem;
     pmnPatternsGoto: TMenuItem;
+    mnGENTiles: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure mnExitClick(Sender: TObject);
@@ -113,6 +114,7 @@ type
     procedure mn1BPPTilesClick(Sender: TObject);
     procedure pmnPatternsGotoClick(Sender: TObject);
     procedure pmnTilesGotoClick(Sender: TObject);
+    procedure mnGENTilesClick(Sender: TObject);
   private
     { Private declarations }
     fPatterns: TBitmap;
@@ -144,8 +146,8 @@ const
   TILEMAP_TOP = 16;
   PATTERNS_LEFT = 543;
   PATTERNS_TOP = TILEMAP_TOP;
-  TILEEDIT_LEFT = PATTERNS_LEFT;
-  TILEEDIT_TOP = PATTERNS_TOP + 256 + 32;
+//  TILEEDIT_LEFT = PATTERNS_LEFT;
+//  TILEEDIT_TOP = PATTERNS_TOP + 256 + 32;
 
 var
   fmMainDialog: TfmMainDialog;
@@ -414,22 +416,26 @@ begin
     if Key = 188 then
     begin
       if TilemapSx > 1 then
+      begin
         dec(TilemapSx);
-      pbTilemapSize.Position := TilemapSx;
-      dec(TilemapSS, TilemapSy);
-      fisTilemapChanged := true;
-      RedrawTilemap;
-      pbTilemapSize.Repaint;
+        pbTilemapSize.Position := TilemapSx;
+        TilemapSS := TilemapSy * TilemapSx;
+        fisTilemapChanged := true;
+        RedrawTilemap;
+        pbTilemapSize.Repaint;
+      end;
     end;
     if Key = 190 then
     begin
-      if TilemapSx < 32 then
+      if TilemapSx < 40 then
+      begin
         inc(TilemapSx);
-      pbTilemapSize.Position := TilemapSx;
-      inc(TilemapSS, TilemapSy);
-      fisTilemapChanged := true;
-      RedrawTilemap;
-      pbTilemapSize.Repaint;
+        pbTilemapSize.Position := TilemapSx;
+        TilemapSS := TilemapSy * TilemapSx;
+        fisTilemapChanged := true;
+        RedrawTilemap;
+        pbTilemapSize.Repaint;
+      end;
     end;
   end;
 end;
@@ -525,7 +531,7 @@ end;
 
 procedure TfmMainDialog.spbPatternsDownClick(Sender: TObject);
 begin
-  if (PatternsOffset + 4096) <= fNESFile.CHRSize then
+  if (PatternsOffset + (256 * 8 * PatternMul)) <= fNESFile.CHRSize then
   begin
     inc(PatternsOffset);
     RedrawPatterns;
@@ -534,54 +540,54 @@ end;
 
 procedure TfmMainDialog.spbPatternsTileUpClick(Sender: TObject);
 begin
-  if PatternsOffset >= 16 then
+  if PatternsOffset >= (8 * PatternMul) then
   begin
-    dec(PatternsOffset, 16);
+    dec(PatternsOffset, (8 * PatternMul));
     RedrawPatterns;
   end;
 end;
 
 procedure TfmMainDialog.spbPatternsTileDownClick(Sender: TObject);
 begin
-  if (PatternsOffset + 4112) <= fNESFile.CHRSize then
+  if (PatternsOffset + (257 * 8 * PatternMul)) <= fNESFile.CHRSize then
   begin
-    inc(PatternsOffset, 16);
+    inc(PatternsOffset, (8 * PatternMul));
     RedrawPatterns;
   end;
 end;
 
 procedure TfmMainDialog.spbPatternsLineUpClick(Sender: TObject);
 begin
-  if PatternsOffset >= 256 then
+  if PatternsOffset >= (16 * 8 * PatternMul) then
   begin
-    dec(PatternsOffset, 256);
+    dec(PatternsOffset, (16 * 8 * PatternMul));
     RedrawPatterns;
   end;
 end;
 
 procedure TfmMainDialog.spbPatternsLineDownClick(Sender: TObject);
 begin
-  if (PatternsOffset + 4352) <= fNESFile.CHRSize then
+  if (PatternsOffset + (256 * 8 * PatternMul) + (16 * 8 * PatternMul)) <= fNESFile.CHRSize then
   begin
-    inc(PatternsOffset, 256);
+    inc(PatternsOffset, (16 * 8 * PatternMul));
     RedrawPatterns;
   end;
 end;
 
 procedure TfmMainDialog.spbPatternsPageUpClick(Sender: TObject);
 begin
-  if PatternsOffset >= 4095 then
+  if PatternsOffset >= ((256 * 8 * PatternMul) - 1) then
   begin
-    dec(PatternsOffset, 4096);
+    dec(PatternsOffset, (256 * 8 * PatternMul));
     RedrawPatterns;
   end;
 end;
 
 procedure TfmMainDialog.spbPatternsPageDownClick(Sender: TObject);
 begin
-  if (PatternsOffset + 8192) <= fNESFile.CHRSize then
+  if (PatternsOffset + (256 * 8 * PatternMul) + (256 * 8 * PatternMul)) <= fNESFile.CHRSize then
   begin
-    inc(PatternsOffset, 4096);
+    inc(PatternsOffset, (256 * 8 * PatternMul));
     RedrawPatterns;
   end;
 end;
@@ -594,7 +600,7 @@ end;
 
 procedure TfmMainDialog.spbPatternsEndClick(Sender: TObject);
 begin
-  PatternsOffset := fNESFile.CHRSize - 4096;
+  PatternsOffset := fNESFile.CHRSize - (256 * 8 * PatternMul);
   RedrawPatterns;
 end;
 
@@ -965,6 +971,7 @@ begin
   mnNESTiles.Checked := False;
   mnGBTiles.Checked := False;
   mn1BPPTiles.Checked := False;
+  mnGENTiles.Checked := False;
   case TileFormat of
     TILE_1BPP:
       mn1BPPTiles.Checked := True;
@@ -972,6 +979,8 @@ begin
       mnNESTiles.Checked := True;
     TILE_GB:
       mnGBTiles.Checked := True;
+    TILE_GEN:
+      mnGENTiles.Checked := True;
   end;
   RedrawPatterns;
 end;
@@ -979,18 +988,28 @@ end;
 procedure TfmMainDialog.mn1BPPTilesClick(Sender: TObject);
 begin
   TileFormat := TILE_1BPP;
+  PatternMul := 1;
   TileFormatUpdate;
 end;
 
 procedure TfmMainDialog.mnNESTilesClick(Sender: TObject);
 begin
   TileFormat := TILE_NES;
+  PatternMul := 2;
   TileFormatUpdate;
 end;
 
 procedure TfmMainDialog.mnGBTilesClick(Sender: TObject);
 begin
   TileFormat := TILE_GB;
+  PatternMul := 2;
+  TileFormatUpdate;
+end;
+
+procedure TfmMainDialog.mnGENTilesClick(Sender: TObject);
+begin
+  TileFormat := TILE_GEN;
+  PatternMul := 4;
   TileFormatUpdate;
 end;
 
