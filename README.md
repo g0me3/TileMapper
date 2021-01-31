@@ -1,11 +1,11 @@
 # TileMapper
-Draw Map with Tiles out of ROM files directly. Load Any NES or GB file to begin a Journey to the world of the hidden pictures lol.
+Draw Map with Tiles out of ROM files directly. Load a NES, GB or any other RAW file7 to begin a Journey to the world of the hidden pictures lol.
 
-Initial commit is based on original Borland Delphi 3 sources (there is ASM blocks inside!)
+Initial commit is based on original Borland Delphi 3 sources (there is ASM blocks in7side!)
 
-# Supported Systems
-- Tile: 1BPP, NES, GB
-- Roms: NES, RAW (any other threated as RAW)
+# Supported Formats
+- Tile Formats: 1 bpp, NES/Famicom, Game Boy, Genesis
+- Input Files: NES, GB, RAW (any other threated as RAW), separate Tilemaps / Patternts
 
 # TODO Ideas
 - More Tile formats
