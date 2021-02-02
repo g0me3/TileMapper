@@ -117,14 +117,17 @@ type
     procedure mnGENTilesClick(Sender: TObject);
   private
     { Private declarations }
-    fPatterns: TBitmap;
+    fPatterns, fTileMap, fPalette: TBitmap;
+
     PatternsOffset: Longint;
-    fTileMap: TBitmap;
     TilemapOffset: Longint;
+
     TilemapSx, TilemapSy, TilemapSS: Integer;
+
     fNESFile: TNESFile;
     fisNESLoaded, fisBarDragged, fisSelDragged, fisTilemapChanged,
       fisTileDragged, fisTilemapModified: Boolean;
+
     fSelection: TRect;
     fDraggedTile: Integer;
     fCurTile: Integer;
@@ -133,6 +136,7 @@ type
     fPatternName: string;
     procedure RedrawTilemap;
     procedure RedrawPatterns;
+    procedure RedrawPalette;
     procedure LoadInit;
     procedure TileFormatUpdate;
     procedure DrawModeUpdate;
@@ -146,8 +150,8 @@ const
   TILEMAP_TOP = 16;
   PATTERNS_LEFT = 543;
   PATTERNS_TOP = TILEMAP_TOP;
-//  TILEEDIT_LEFT = PATTERNS_LEFT;
-//  TILEEDIT_TOP = PATTERNS_TOP + 256 + 32;
+  PAL_LEFT = PATTERNS_LEFT;
+  PAL_TOP = PATTERNS_TOP + 256 + 16;
 
 var
   fmMainDialog: TfmMainDialog;
@@ -227,6 +231,12 @@ begin
   Canvas.Draw(PATTERNS_LEFT, PATTERNS_TOP, fPatterns);
 end;
 
+procedure TfmMainDialog.RedrawPalette;
+begin
+  DrawPalette(fPalette);
+  Canvas.Draw(PAL_LEFT, PAL_TOP, fPalette);
+end;
+
 procedure TfmMainDialog.SetApplicationTitle;
 var
   tmpTitle: string;
@@ -260,20 +270,27 @@ begin
   fPatterns := TBitmap.Create;
   with fPatterns as TBitmap do
   begin
-    Height := 256;
-    Width := 256;
+    Width := 16 * 8 * 2;
+    Height := 16 * 8 * 2;
+    PixelFormat := pf32Bit;
+  end;
+  fTileMap := TBitmap.Create;
+  with fTileMap as TBitmap do
+  begin
+    Width := 32 * 8 * 2;
+    Height := 33 * 8 * 2;
+    PixelFormat := pf32Bit;
+  end;
+  fPalette := TBitmap.Create;
+  with fPalette as TBitmap do
+  begin
+    Width := 16 * 8 * 2;
+    Height := 4 * 8 * 2;
     PixelFormat := pf32Bit;
   end;
   TilemapSx := 32;
   TilemapSy := 33;
   TilemapSS := TilemapSx * TilemapSy;
-  fTileMap := TBitmap.Create;
-  with fTileMap as TBitmap do
-  begin
-    Height := TilemapSy * 16;
-    Width := TilemapSx * 16;
-    PixelFormat := pf32Bit;
-  end;
   fSelection.Left := 0;
   fSelection.Top := 0;
   fSelection.Bottom := TilemapSy * 16;
@@ -289,8 +306,10 @@ begin
   mn1BPPTiles.Checked := true;
   mnNESTiles.Checked := true;
   mnGBTiles.Checked := False;
+  DefPalInit;
   RedrawTilemap;
   RedrawPatterns;
+  RedrawPalette;
   SetApplicationTitle;
 end;
 
@@ -298,6 +317,7 @@ procedure TfmMainDialog.FormDestroy(Sender: TObject);
 begin
   fPatterns.Free;
   fTileMap.Free;
+  fPalette.Free;
   NESFileFree(fNESFile);
   fTileName := '';
   fPatternName := '';
@@ -322,6 +342,7 @@ begin
   PatternsOffset := 0;
   RedrawPatterns;
   RedrawTilemap;
+  RedrawPalette;
 end;
 
 procedure TfmMainDialog.mnLoadFromNESClick(Sender: TObject);
@@ -444,6 +465,7 @@ procedure TfmMainDialog.FormPaint(Sender: TObject);
 begin
   Canvas.Draw(PATTERNS_LEFT, PATTERNS_TOP, fPatterns);
   Canvas.Draw(TILEMAP_LEFT, TILEMAP_TOP, fTileMap);
+  Canvas.Draw(PAL_LEFT, PAL_TOP, fPalette);
 end;
 
 procedure TfmMainDialog.spbTilemapUpClick(Sender: TObject);
@@ -612,8 +634,8 @@ begin
     TilemapSx := (X shr 4) + 1;
     if X < 0 then
       TilemapSx := 1;
-    if TilemapSx > 32 then
-      TilemapSx := 32;
+    if TilemapSx > 40 then
+      TilemapSx := 40;
     pbTilemapSize.Position := TilemapSx;
     TilemapSS := TilemapSx * TilemapSy;
     RedrawTilemap;
@@ -629,8 +651,8 @@ begin
     TilemapSx := (X shr 4) + 1;
     if X < 0 then
       TilemapSx := 1;
-    if TilemapSx > 32 then
-      TilemapSx := 32;
+    if TilemapSx > 40 then
+      TilemapSx := 40;
     pbTilemapSize.Position := TilemapSx;
     TilemapSS := TilemapSx * TilemapSy;
     RedrawTilemap;
@@ -990,6 +1012,8 @@ begin
       mnGENTiles.Checked := True;
   end;
   RedrawPatterns;
+  DefPalInit;
+  RedrawPalette;
 end;
 
 procedure TfmMainDialog.mn1BPPTilesClick(Sender: TObject);

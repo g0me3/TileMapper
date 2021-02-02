@@ -12,5 +12,4 @@ begin
   Application.Initialize;
   Application.CreateForm(TfmMainDialog, fmMainDialog);
   Application.Run;
-
 end.

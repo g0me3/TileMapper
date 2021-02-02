@@ -5,10 +5,6 @@ interface
 
 uses Windows, Graphics;
 
-const
-  MAX_PRG = 255;
-  MAX_CHR = 255 shl 1;
-
 type
   TiNESHeader = record
     Sign: longint;
@@ -28,6 +24,9 @@ type
   end;
 
 const
+  MAX_PRG = 255;
+  MAX_CHR = 255 shl 1;
+
   DRAW_NORMAL = 0;
   DRAW_VERTICAL = 1;
   DRAW_8X16 = 2;
@@ -36,11 +35,21 @@ const
   TILE_GB = 2;
   TILE_GEN = 3;
 
-const
   DrawMode: Byte = DRAW_NORMAL;
   TileFormat: Byte = TILE_NES;
   PatternMul: Byte = 2;
-  NESPalette: Array [0 .. 63] of longint = (
+
+  NESGBDefPal: Array [0 .. 3] of longint = (
+    $00000000,
+    $00FFFFFF,
+    $00BBBBBB,
+    $00888888
+    );
+
+  GENPalDecodeTbl: Array [0 .. 7] of Byte = (
+   $00, $34, $57, $74, $90, $AC, $CC, $FF
+  );
+  GENDefPal: Array [0 .. 63] of longint = (
     $00000000,
     $00FFFFFF,
     $00BBBBBB,
@@ -110,6 +119,9 @@ const
     $009D7DFF
     );
 
+var
+  CurPalette: Array [0 .. 63] of longint;
+
 Function NESFileRead(Name: String; var NES: TNESFile): Integer;
 Function TilemapRead(Name: String; var NES: TNESFile): Integer;
 Function PatternsRead(Name: String; var NES: TNESFile): Integer;
@@ -123,10 +135,14 @@ Procedure DrawPatterns(var Bitmap: TBitmap; var NES: TNESFile;
   CHROffset: longint);
 Procedure DrawTilemap(var Bitmap: TBitmap; var NES: TNESFile;
   CHROffset, PRGOffset: Integer; Sx, Sy: Integer);
-Procedure DrawSelection(var Bitmap: TBitmap; Selection: TRect);
+Procedure DrawPalette(var Bitmap: TBitmap);
+
+  Procedure DrawSelection(var Bitmap: TBitmap; Selection: TRect);
 Procedure DrawGrid(var Bitmap: TBitmap; A, B: Integer);
 Procedure DrawUsedTiles(var Bitmap: TBitmap; Ofs, Sx: Integer; Area: TRect;
   var NES: TNESFile);
+
+Procedure DefPalInit;
 
 implementation
 
@@ -147,7 +163,7 @@ asm
   rcl      al, 1
   shl      TileLineA, 1
   rcl      al, 1
-  mov      eax, dword ptr NESPalette[eax*4]
+  mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
   add      edi, 4
   mov      dword ptr [edi], eax
@@ -168,7 +184,7 @@ asm
   mov      al, TileLineA
   shr      al, 4
   add      eax, Pal
-  mov      eax, dword ptr NESPalette[eax*4]
+  mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
   add      edi, 4
   mov      dword ptr [edi], eax
@@ -178,7 +194,7 @@ asm
   mov      al, TileLineA
   and      al, 15
   add      eax, Pal
-  mov      eax, dword ptr NESPalette[eax*4]
+  mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
   add      edi, 4
   mov      dword ptr [edi], eax
@@ -188,7 +204,7 @@ asm
   mov      al, TileLineB
   shr      al, 4
   add      eax, Pal
-  mov      eax, dword ptr NESPalette[eax*4]
+  mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
   add      edi, 4
   mov      dword ptr [edi], eax
@@ -198,7 +214,7 @@ asm
   mov      al, TileLineB
   and      al, 15
   add      eax, Pal
-  mov      eax, dword ptr NESPalette[eax*4]
+  mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
   add      edi, 4
   mov      dword ptr [edi], eax
@@ -208,7 +224,7 @@ asm
   mov      al, TileLineC
   shr      al, 4
   add      eax, Pal
-  mov      eax, dword ptr NESPalette[eax*4]
+  mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
   add      edi, 4
   mov      dword ptr [edi], eax
@@ -218,7 +234,7 @@ asm
   mov      al, TileLineC
   and      al, 15
   add      eax, Pal
-  mov      eax, dword ptr NESPalette[eax*4]
+  mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
   add      edi, 4
   mov      dword ptr [edi], eax
@@ -228,7 +244,7 @@ asm
   mov      al, TileLineD
   shr      al, 4
   add      eax, Pal
-  mov      eax, dword ptr NESPalette[eax*4]
+  mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
   add      edi, 4
   mov      dword ptr [edi], eax
@@ -238,7 +254,7 @@ asm
   mov      al, TileLineD
   and      al, 15
   add      eax, Pal
-  mov      eax, dword ptr NESPalette[eax*4]
+  mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
   add      edi, 4
   mov      dword ptr [edi], eax
@@ -257,7 +273,7 @@ asm
   mov      al, TileLineD
   and      al, 15
   add      eax, Pal
-  mov      eax, dword ptr NESPalette[eax*4]
+  mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
   add      edi, 4
   mov      dword ptr [edi], eax
@@ -267,7 +283,7 @@ asm
   mov      al, TileLineD
   shr      al, 4
   add      eax, Pal
-  mov      eax, dword ptr NESPalette[eax*4]
+  mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
   add      edi, 4
   mov      dword ptr [edi], eax
@@ -277,7 +293,7 @@ asm
   mov      al, TileLineC
   and      al, 15
   add      eax, Pal
-  mov      eax, dword ptr NESPalette[eax*4]
+  mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
   add      edi, 4
   mov      dword ptr [edi], eax
@@ -287,7 +303,7 @@ asm
   mov      al, TileLineC
   shr      al, 4
   add      eax, Pal
-  mov      eax, dword ptr NESPalette[eax*4]
+  mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
   add      edi, 4
   mov      dword ptr [edi], eax
@@ -297,7 +313,7 @@ asm
   mov      al, TileLineB
   and      al, 15
   add      eax, Pal
-  mov      eax, dword ptr NESPalette[eax*4]
+  mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
   add      edi, 4
   mov      dword ptr [edi], eax
@@ -307,7 +323,7 @@ asm
   mov      al, TileLineB
   shr      al, 4
   add      eax, Pal
-  mov      eax, dword ptr NESPalette[eax*4]
+  mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
   add      edi, 4
   mov      dword ptr [edi], eax
@@ -317,7 +333,7 @@ asm
   mov      al, TileLineA
   and      al, 15
   add      eax, Pal
-  mov      eax, dword ptr NESPalette[eax*4]
+  mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
   add      edi, 4
   mov      dword ptr [edi], eax
@@ -327,7 +343,7 @@ asm
   mov      al, TileLineA
   shr      al, 4
   add      eax, Pal
-  mov      eax, dword ptr NESPalette[eax*4]
+  mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
   add      edi, 4
   mov      dword ptr [edi], eax
@@ -517,6 +533,23 @@ begin
   end;
 end;
 
+Procedure DrawPalette(var Bitmap: TBitmap);
+var
+  i, j: Integer;
+  Rect: TRect;
+begin
+  for i := 0 to 3 do
+    for j := 0 to 15 do
+      begin
+        Rect.Left := j shl 4;
+        Rect.Top := i shl 4;
+        Rect.Right := Rect.Left + 16;
+        Rect.Bottom := Rect.Top + 16;
+        Bitmap.Canvas.Brush.Color := CurPalette[(i * 16) + j];
+        Bitmap.Canvas.FillRect(Rect);
+      end;
+end;
+
 Procedure DrawSelection(var Bitmap: TBitmap; Selection: TRect);
 begin
   Bitmap.Canvas.Brush.Color := $000000FF;
@@ -620,6 +653,7 @@ begin
     begin
       TileFormat := TILE_NES;
       PatternMul := 2;
+      DefPalInit;
 
       PRGSize := Header.PRGBank * 16384;
       CHRSize := Header.CHRBank * 8192;
@@ -664,6 +698,7 @@ begin
       begin
         TileFormat := TILE_GB;
         PatternMul := 2;
+        DefPalInit;
       end;
       // load data RAW two copies of the same file in CHR and TILE buffers.
       PRGSize := GetFileSize(IFile, nil);
@@ -802,6 +837,22 @@ begin
       CHRData := nil;
     end;
   end;
+end;
+
+Procedure DefPalInit;
+var
+  i: Integer;
+begin
+    for i := 0 to 63 do CurPalette[i] := 0;
+    if TileFormat <> TILE_GEN then
+    begin
+      for i := 0 to 3 do
+        CurPalette[i] := NESGBDefPal[i];
+    end
+    else
+    begin
+      for i := 0 to 63 do CurPalette[i] := GENDefPal[i];
+    end;
 end;
 
 end.
