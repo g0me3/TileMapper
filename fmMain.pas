@@ -634,8 +634,8 @@ begin
     TilemapSx := (X shr 4) + 1;
     if X < 0 then
       TilemapSx := 1;
-    if TilemapSx > 40 then
-      TilemapSx := 40;
+    if TilemapSx > 32 then
+      TilemapSx := 32;
     pbTilemapSize.Position := TilemapSx;
     TilemapSS := TilemapSx * TilemapSy;
     RedrawTilemap;
@@ -651,8 +651,8 @@ begin
     TilemapSx := (X shr 4) + 1;
     if X < 0 then
       TilemapSx := 1;
-    if TilemapSx > 40 then
-      TilemapSx := 40;
+    if TilemapSx > 32 then
+      TilemapSx := 32;
     pbTilemapSize.Position := TilemapSx;
     TilemapSS := TilemapSx * TilemapSy;
     RedrawTilemap;
@@ -724,7 +724,8 @@ begin
       Y := 0;
     Y := Y shr 4;
 
-    if TilemapSx > 32 then
+    Sx := TilemapSx;
+    if TilemapSx >= 32 then
       Sx := 32;
 
     if (X >= 0) and (X < Sx) and (Y >= 0) and (Y < TilemapSy) then
@@ -792,7 +793,9 @@ begin
     if X < 0 then
       X := 0;
     X := X shr 4;
-    if TilemapSx > 32 then
+
+    Sx := TilemapSx;
+    if TilemapSx >= 32 then
       Sx := 32;
 
     if ((X < Sx) and (Y < TilemapSy)) then
@@ -870,7 +873,8 @@ begin
         Y := 0;
       Y := Y shr 4;
       sbMain.Panels[0].Text := '';
-      if TilemapSx > 32 then
+      Sx := TilemapSx;
+      if TilemapSx >= 32 then
         Sx := 32;
       if (X >= 0) and (X < Sx) and (Y >= 0) and (Y <= TilemapSy)
       then
