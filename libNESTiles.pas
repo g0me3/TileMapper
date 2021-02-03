@@ -50,6 +50,7 @@ const
    $00, $34, $57, $74, $90, $AC, $CC, $FF
   );
   GENDefPal: Array [0 .. 63] of longint = (
+//      B G R
     $00000000,
     $00FFFFFF,
     $00BBBBBB,
@@ -142,7 +143,8 @@ Procedure DrawGrid(var Bitmap: TBitmap; A, B: Integer);
 Procedure DrawUsedTiles(var Bitmap: TBitmap; Ofs, Sx: Integer; Area: TRect;
   var NES: TNESFile);
 
-Procedure DefPalInit;
+Procedure PaletteSetDefault;
+Procedure PaletteLoadFromOffset(var NES: TNESFile; PRGOffset: Integer);
 
 implementation
 
@@ -174,7 +176,7 @@ asm
   pop      edi
 end;
 
-Procedure DrawTileLine16(Buf: Pointer; TileLineA, TileLineB, TileLineC, TileLineD: Byte; Pal: Integer);
+Procedure DrawTileLine16(Buf: Pointer; TileLineA, TileLineB, TileLineC, TileLineD: Byte; Pal: longint);
   assembler; stdcall;
 asm
   push     edi
@@ -186,9 +188,8 @@ asm
   add      eax, Pal
   mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
-  add      edi, 4
-  mov      dword ptr [edi], eax
-  add      edi, 4
+  mov      dword ptr [edi+4], eax
+  add      edi, 8
 
   xor      eax, eax
   mov      al, TileLineA
@@ -196,9 +197,8 @@ asm
   add      eax, Pal
   mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
-  add      edi, 4
-  mov      dword ptr [edi], eax
-  add      edi, 4
+  mov      dword ptr [edi+4], eax
+  add      edi, 8
 
   xor      eax, eax
   mov      al, TileLineB
@@ -206,9 +206,8 @@ asm
   add      eax, Pal
   mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
-  add      edi, 4
-  mov      dword ptr [edi], eax
-  add      edi, 4
+  mov      dword ptr [edi+4], eax
+  add      edi, 8
 
   xor      eax, eax
   mov      al, TileLineB
@@ -216,9 +215,8 @@ asm
   add      eax, Pal
   mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
-  add      edi, 4
-  mov      dword ptr [edi], eax
-  add      edi, 4
+  mov      dword ptr [edi+4], eax
+  add      edi, 8
 
   xor      eax, eax
   mov      al, TileLineC
@@ -226,9 +224,8 @@ asm
   add      eax, Pal
   mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
-  add      edi, 4
-  mov      dword ptr [edi], eax
-  add      edi, 4
+  mov      dword ptr [edi+4], eax
+  add      edi, 8
 
   xor      eax, eax
   mov      al, TileLineC
@@ -236,9 +233,8 @@ asm
   add      eax, Pal
   mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
-  add      edi, 4
-  mov      dword ptr [edi], eax
-  add      edi, 4
+  mov      dword ptr [edi+4], eax
+  add      edi, 8
 
   xor      eax, eax
   mov      al, TileLineD
@@ -246,9 +242,8 @@ asm
   add      eax, Pal
   mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
-  add      edi, 4
-  mov      dword ptr [edi], eax
-  add      edi, 4
+  mov      dword ptr [edi+4], eax
+  add      edi, 8
 
   xor      eax, eax
   mov      al, TileLineD
@@ -256,14 +251,13 @@ asm
   add      eax, Pal
   mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
-  add      edi, 4
-  mov      dword ptr [edi], eax
-  add      edi, 4
+  mov      dword ptr [edi+4], eax
+  add      edi, 8
 
   pop      edi
 end;
 
-Procedure DrawTileLine16h(Buf: Pointer; TileLineA, TileLineB, TileLineC, TileLineD: Byte; Pal: Integer);
+Procedure DrawTileLine16h(Buf: Pointer; TileLineA, TileLineB, TileLineC, TileLineD: Byte; Pal: longint);
   assembler; stdcall;
 asm
   push     edi
@@ -275,9 +269,8 @@ asm
   add      eax, Pal
   mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
-  add      edi, 4
-  mov      dword ptr [edi], eax
-  add      edi, 4
+  mov      dword ptr [edi+4], eax
+  add      edi, 8
 
   xor      eax, eax
   mov      al, TileLineD
@@ -285,9 +278,8 @@ asm
   add      eax, Pal
   mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
-  add      edi, 4
-  mov      dword ptr [edi], eax
-  add      edi, 4
+  mov      dword ptr [edi+4], eax
+  add      edi, 8
 
   xor      eax, eax
   mov      al, TileLineC
@@ -295,9 +287,8 @@ asm
   add      eax, Pal
   mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
-  add      edi, 4
-  mov      dword ptr [edi], eax
-  add      edi, 4
+  mov      dword ptr [edi+4], eax
+  add      edi, 8
 
   xor      eax, eax
   mov      al, TileLineC
@@ -305,9 +296,8 @@ asm
   add      eax, Pal
   mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
-  add      edi, 4
-  mov      dword ptr [edi], eax
-  add      edi, 4
+  mov      dword ptr [edi+4], eax
+  add      edi, 8
 
   xor      eax, eax
   mov      al, TileLineB
@@ -315,9 +305,8 @@ asm
   add      eax, Pal
   mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
-  add      edi, 4
-  mov      dword ptr [edi], eax
-  add      edi, 4
+  mov      dword ptr [edi+4], eax
+  add      edi, 8
 
   xor      eax, eax
   mov      al, TileLineB
@@ -325,9 +314,8 @@ asm
   add      eax, Pal
   mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
-  add      edi, 4
-  mov      dword ptr [edi], eax
-  add      edi, 4
+  mov      dword ptr [edi+4], eax
+  add      edi, 8
 
   xor      eax, eax
   mov      al, TileLineA
@@ -335,9 +323,8 @@ asm
   add      eax, Pal
   mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
-  add      edi, 4
-  mov      dword ptr [edi], eax
-  add      edi, 4
+  mov      dword ptr [edi+4], eax
+  add      edi, 8
 
   xor      eax, eax
   mov      al, TileLineA
@@ -345,9 +332,8 @@ asm
   add      eax, Pal
   mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
-  add      edi, 4
-  mov      dword ptr [edi], eax
-  add      edi, 4
+  mov      dword ptr [edi+4], eax
+  add      edi, 8
 
   pop      edi
 end;
@@ -469,7 +455,7 @@ Procedure DrawTilemap(var Bitmap: TBitmap; var NES: TNESFile;
 var
   i, j, Tile, Pal: Integer;
   vFlip, hFlip: Boolean;
-  Offset, TmpTile: longint;
+  Offset, TmpTile, PRGPtr: longint;
   Blank: TRect;
 begin
   with NES do
@@ -483,19 +469,20 @@ begin
           begin
             if PRGOffset + Offset < PRGSize then
             begin
+              PRGPtr := longint(PRGData) + PRGOffset + Offset;
               vFlip := false;
               hFlip := false;
               Pal := 0;
               case TileFormat of
               TILE_1BPP:
-                Tile := Byte(ptr(longint(PRGData) + PRGOffset + Offset)^) shl 3;
+                Tile := Byte(ptr(PRGPtr)^) shl 3;
               TILE_NES:
-                Tile := Byte(ptr(longint(PRGData) + PRGOffset + Offset)^) shl 4;
+                Tile := Byte(ptr(PRGPtr)^) shl 4;
               TILE_GB:
-                Tile := Byte(ptr(longint(PRGData) + PRGOffset + Offset)^) shl 4;
+                Tile := Byte(ptr(PRGPtr)^) shl 4;
               TILE_GEN:
               begin
-                TmpTile := (Byte(ptr(longint(PRGData) + PRGOffset + Offset)^) shl 8) + Byte(ptr(longint(PRGData) + PRGOffset + Offset + 1)^);
+                TmpTile := (Byte(ptr(PRGPtr)^) shl 8) + Byte(ptr(PRGPtr + 1)^);
                 Tile := (TmpTile and $7FF) shl 5;
                 hFlip := (TmpTile and $0800) = $0800;
                 vFlip := (TmpTile and $1000) = $1000;
@@ -537,6 +524,7 @@ Procedure DrawPalette(var Bitmap: TBitmap);
 var
   i, j: Integer;
   Rect: TRect;
+  tmp: longint;
 begin
   for i := 0 to 3 do
     for j := 0 to 15 do
@@ -545,7 +533,10 @@ begin
         Rect.Top := i shl 4;
         Rect.Right := Rect.Left + 16;
         Rect.Bottom := Rect.Top + 16;
-        Bitmap.Canvas.Brush.Color := CurPalette[(i * 16) + j];
+        // i'm not sure why colors here and in patterns has R and B swapped, but...
+        tmp := CurPalette[(i * 16) + j];
+        tmp := (tmp and $00FF00) + ((tmp and $FF0000) shr 16) + ((tmp and $0000FF) shl 16);
+        Bitmap.Canvas.Brush.Color := tmp;
         Bitmap.Canvas.FillRect(Rect);
       end;
 end;
@@ -644,48 +635,62 @@ begin
   with NES do
   begin
       if not ReadFile(IFile, Header, 16, err, nil) then
-    begin
-      result := GetLastError;
-      Exit;
-    end;
-
-    if Header.Sign = $1A53454E then
-    begin
-      TileFormat := TILE_NES;
-      PatternMul := 2;
-      DefPalInit;
-
-      PRGSize := Header.PRGBank * 16384;
-      CHRSize := Header.CHRBank * 8192;
-
-      if PRGSize = 0 then
-        PRGSize := 256 * 16384;
-
-      GetMem(PRGData, PRGSize);
-      if not ReadFile(IFile, PRGData^, PRGSize, err, nil) then
-      begin
-        result := GetLastError;
-        Exit;
-      end;
-
-      if CHRSize = 0 then
-      begin
-        CHRSize := PRGSize;
-        GetMem(CHRData, CHRSize);
-        Move(PRGData^, CHRData^, CHRSize);
-      end
-      else
-      begin
-        GetMem(CHRData, CHRSize);
-        if not ReadFile(IFile, CHRData^, CHRSize, err, nil) then
         begin
           result := GetLastError;
           Exit;
         end;
-      end;
-    end
-    else
+
+      if Header.Sign = $1A53454E then
+      begin
+        TileFormat := TILE_NES;
+        PatternMul := 2;
+        PaletteSetDefault;
+
+        PRGSize := Header.PRGBank * 16384;
+        CHRSize := Header.CHRBank * 8192;
+
+        if PRGSize = 0 then
+          PRGSize := 256 * 16384;
+
+        GetMem(PRGData, PRGSize);
+        if not ReadFile(IFile, PRGData^, PRGSize, err, nil) then
+        begin
+          result := GetLastError;
+          Exit;
+        end;
+
+        if CHRSize = 0 then
+        begin
+          CHRSize := PRGSize;
+          GetMem(CHRData, CHRSize);
+          Move(PRGData^, CHRData^, CHRSize);
+        end
+        else
+        begin
+          GetMem(CHRData, CHRSize);
+          if not ReadFile(IFile, CHRData^, CHRSize, err, nil) then
+          begin
+            result := GetLastError;
+            Exit;
+          end;
+        end;
+      end
+      else
     begin
+
+      // check if loaded file is in GB format, then set the proper TILE format automatically.
+      SetFilePointer(IFile, $100, nil, FILE_BEGIN);
+      if not ReadFile(IFile, tmp, 4, err, nil) then
+      begin
+        result := GetLastError;
+        Exit;
+      end;
+      if(tmp = $41474553) then
+      begin
+        TileFormat := TILE_GEN;
+        PatternMul := 4;
+        PaletteSetDefault;
+      end;
 
       // check if loaded file is in GB format, then set the proper TILE format automatically.
       SetFilePointer(IFile, $104, nil, FILE_BEGIN);
@@ -698,8 +703,9 @@ begin
       begin
         TileFormat := TILE_GB;
         PatternMul := 2;
-        DefPalInit;
+        PaletteSetDefault;
       end;
+
       // load data RAW two copies of the same file in CHR and TILE buffers.
       PRGSize := GetFileSize(IFile, nil);
       GetMem(PRGData, PRGSize);
@@ -839,7 +845,7 @@ begin
   end;
 end;
 
-Procedure DefPalInit;
+Procedure PaletteSetDefault;
 var
   i: Integer;
 begin
@@ -853,6 +859,24 @@ begin
     begin
       for i := 0 to 63 do CurPalette[i] := GENDefPal[i];
     end;
+end;
+
+Procedure PaletteLoadFromOffset(var NES: TNESFile; PRGOffset: Integer);
+var
+  i: Integer;
+  col, Offset: longint;
+  R,G,B: Byte;
+begin
+    if TileFormat = TILE_GEN then
+      for i := 0 to 63 do
+      begin
+        Offset := longint(NES.PRGData) + PRGOffset + (i * 2);
+        col := (Byte(ptr(Offset)^) shl 8) + Byte(ptr(Offset + 1)^);
+        R := GENPalDecodeTbl[(col shr 9) and 7];
+        G := GENPalDecodeTbl[(col shr 5) and 7];
+        B := GENPalDecodeTbl[(col shr 1) and 7];
+        CurPalette[i] :=  (B shl 16) + (G shl 8) + R;
+      end;
 end;
 
 end.

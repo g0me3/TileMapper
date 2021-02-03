@@ -61,6 +61,17 @@ type
     pmnTilesGoto: TMenuItem;
     pmnPatternsGoto: TMenuItem;
     mnGENTiles: TMenuItem;
+    spbPalLoadFromOffset: TSpeedButton;
+    spbPal01: TSpeedButton;
+    spbPal02: TSpeedButton;
+    spbPal03: TSpeedButton;
+    spbPal04: TSpeedButton;
+    spbPal05: TSpeedButton;
+    spbPal06: TSpeedButton;
+    spbPal07: TSpeedButton;
+    spbPal08: TSpeedButton;
+    spbPalDefault: TSpeedButton;
+    pnPalette: TPanel;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure mnExitClick(Sender: TObject);
@@ -115,6 +126,8 @@ type
     procedure pmnPatternsGotoClick(Sender: TObject);
     procedure pmnTilesGotoClick(Sender: TObject);
     procedure mnGENTilesClick(Sender: TObject);
+    procedure spbPalDefaultClick(Sender: TObject);
+    procedure spbPalLoadFromOffsetClick(Sender: TObject);
   private
     { Private declarations }
     fPatterns, fTileMap, fPalette: TBitmap;
@@ -151,7 +164,7 @@ const
   PATTERNS_LEFT = 543;
   PATTERNS_TOP = TILEMAP_TOP;
   PAL_LEFT = PATTERNS_LEFT;
-  PAL_TOP = PATTERNS_TOP + 256 + 16;
+  PAL_TOP = PATTERNS_TOP + 256 + 24;
 
 var
   fmMainDialog: TfmMainDialog;
@@ -270,23 +283,23 @@ begin
   fPatterns := TBitmap.Create;
   with fPatterns as TBitmap do
   begin
+    PixelFormat := pf32Bit;
     Width := 16 * 8 * 2;
     Height := 16 * 8 * 2;
-    PixelFormat := pf32Bit;
   end;
   fTileMap := TBitmap.Create;
   with fTileMap as TBitmap do
   begin
+    PixelFormat := pf32Bit;
     Width := 32 * 8 * 2;
     Height := 33 * 8 * 2;
-    PixelFormat := pf32Bit;
   end;
   fPalette := TBitmap.Create;
   with fPalette as TBitmap do
   begin
+    PixelFormat := pf32Bit;
     Width := 16 * 8 * 2;
     Height := 4 * 8 * 2;
-    PixelFormat := pf32Bit;
   end;
   TilemapSx := 32;
   TilemapSy := 33;
@@ -306,7 +319,7 @@ begin
   mn1BPPTiles.Checked := true;
   mnNESTiles.Checked := true;
   mnGBTiles.Checked := False;
-  DefPalInit;
+  PaletteSetDefault;
   RedrawTilemap;
   RedrawPatterns;
   RedrawPalette;
@@ -626,6 +639,22 @@ begin
   RedrawPatterns;
 end;
 
+procedure TfmMainDialog.spbPalDefaultClick(Sender: TObject);
+begin
+  PaletteSetDefault;
+  RedrawPalette;
+  RedrawTilemap;
+  RedrawPatterns;
+end;
+
+procedure TfmMainDialog.spbPalLoadFromOffsetClick(Sender: TObject);
+begin
+  PaletteLoadFromOffset(fNESFile, TilemapOffset);
+  RedrawPalette;
+  RedrawTilemap;
+  RedrawPatterns;
+end;
+
 procedure TfmMainDialog.pbTilemapSizeMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
@@ -707,6 +736,103 @@ begin
   end;
 end;
 
+procedure TfmMainDialog.FormMouseMove(Sender: TObject; Shift: TShiftState;
+  X, Y: Integer);
+var
+  CurPtr: Pointer;
+  XX, YY, Sx, Idx: Integer;
+begin
+  if fisNESLoaded then
+  begin
+    YY := Y;
+    dec(Y, TILEMAP_TOP);
+    if Y < 0 then
+      Y := 0;
+    Y := Y shr 4;
+    if Y > TilemapSy then
+      Y := TilemapSy;
+
+    dec(YY, PAL_TOP);
+    if YY < 0 then
+      YY := 0;
+    YY := YY shr 4;
+
+    XX := X;
+    dec(XX, PATTERNS_LEFT);
+    if XX < 0 then
+      XX := 0;
+    XX := XX shr 4;
+    if XX > 15 then
+      XX := 15;
+
+    dec(X, TILEMAP_LEFT);
+    if X < 0 then
+      X := 0;
+    X := X shr 4;
+
+    Sx := TilemapSx;
+    if TilemapSx >= 32 then
+      Sx := 32;
+
+    if ((X < Sx) and (Y < TilemapSy)) then
+    begin
+      if (TilemapOffset + TilemapSx * Y + X) < fNESFile.PRGSize then
+      begin
+        CurPtr := fNESFile.PRGData;
+        inc(Longint(CurPtr), TilemapOffset);
+        inc(Longint(CurPtr), TilemapSx * Y + X);
+        fCurTile := Byte(CurPtr^);
+        RedrawPatterns;
+      end;
+    end
+    else if ((XX < 16) and (Y < 16)) then
+    begin
+      case DrawMode of
+        DRAW_NORMAL:
+          fCurTile := (Y shl 4) + XX;
+        DRAW_8X16:
+          fCurTile := (XX shl 1) + (Y mod 2) + (Y shr 1) shl 5;
+        DRAW_VERTICAL:
+          fCurTile := (XX shl 4) + Y;
+      end;
+      RedrawPatterns;
+    end
+    else if ((XX < 16) and (YY < 4)) then
+    begin
+      Idx := XX + (YY shl 4);
+      pnPalette.Caption := 'IDX:' + IntToHex(Idx, 2) +
+        ', PAL: #' + IntToHex(CurPalette[Idx], 6);
+    end;
+
+    if fisSelDragged then
+    begin
+      X := X shl 4;
+      Y := Y shl 4;
+      if X > fXOrigin then
+      begin
+        fSelection.Left := fXOrigin;
+        fSelection.Right := X;
+      end
+      else
+      begin
+        fSelection.Left := X;
+        fSelection.Right := fXOrigin;
+      end;
+      if Y > fYOrigin then
+      begin
+        fSelection.Top := fYOrigin;
+        fSelection.Bottom := Y;
+      end
+      else
+      begin
+        fSelection.Top := Y;
+        fSelection.Bottom := fYOrigin;
+      end;
+      RedrawTilemap;
+    end;
+  end;
+end;
+
 procedure TfmMainDialog.FormMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
@@ -762,91 +888,6 @@ begin
         sbMain.Panels[0].Text := 'Dragged Tile: ' +
           IntToHex(fDraggedTile, 2);
       end;
-    end;
-  end;
-end;
-
-procedure TfmMainDialog.FormMouseMove(Sender: TObject; Shift: TShiftState;
-  X, Y: Integer);
-var
-  CurPtr: Pointer;
-  XX, Sx: Integer;
-begin
-  if fisNESLoaded then
-  begin
-    dec(Y, TILEMAP_TOP);
-    if Y < 0 then
-      Y := 0;
-    Y := Y shr 4;
-    if Y > TilemapSy then
-      Y := TilemapSy;
-
-    XX := X;
-    dec(XX, PATTERNS_LEFT);
-    if XX < 0 then
-      XX := 0;
-    XX := XX shr 4;
-    if XX > 15 then
-      XX := 15;
-
-    dec(X, TILEMAP_LEFT);
-    if X < 0 then
-      X := 0;
-    X := X shr 4;
-
-    Sx := TilemapSx;
-    if TilemapSx >= 32 then
-      Sx := 32;
-
-    if ((X < Sx) and (Y < TilemapSy)) then
-    begin
-      if (TilemapOffset + TilemapSx * Y + X) < fNESFile.PRGSize then
-      begin
-        CurPtr := fNESFile.PRGData;
-        inc(Longint(CurPtr), TilemapOffset);
-        inc(Longint(CurPtr), TilemapSx * Y + X);
-        fCurTile := Byte(CurPtr^);
-        RedrawPatterns;
-      end;
-    end
-    else if ((XX < 16) and (Y < 16)) then
-    begin
-      case DrawMode of
-        DRAW_NORMAL:
-          fCurTile := (Y shl 4) + XX;
-        DRAW_8X16:
-          fCurTile := (XX shl 1) + (Y mod 2) + (Y shr 1) shl 5;
-        DRAW_VERTICAL:
-          fCurTile := (XX shl 4) + Y;
-      end;
-      RedrawPatterns;
-    end;
-
-    if fisSelDragged then
-    begin
-      X := X shl 4;
-      Y := Y shl 4;
-      if X > fXOrigin then
-      begin
-        fSelection.Left := fXOrigin;
-        fSelection.Right := X;
-      end
-      else
-      begin
-        fSelection.Left := X;
-        fSelection.Right := fXOrigin;
-      end;
-      if Y > fYOrigin then
-      begin
-        fSelection.Top := fYOrigin;
-        fSelection.Bottom := Y;
-      end
-      else
-      begin
-        fSelection.Top := Y;
-        fSelection.Bottom := fYOrigin;
-      end;
-      RedrawTilemap;
     end;
   end;
 end;
@@ -1016,7 +1057,7 @@ begin
       mnGENTiles.Checked := True;
   end;
   RedrawPatterns;
-  DefPalInit;
+  PaletteSetDefault;
   RedrawPalette;
 end;
 
