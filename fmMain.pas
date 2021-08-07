@@ -62,16 +62,9 @@ type
     pmnPatternsGoto: TMenuItem;
     mnGENTiles: TMenuItem;
     spbPalLoadFromOffset: TSpeedButton;
-    spbPal01: TSpeedButton;
-    spbPal02: TSpeedButton;
-    spbPal03: TSpeedButton;
-    spbPal04: TSpeedButton;
-    spbPal05: TSpeedButton;
-    spbPal06: TSpeedButton;
-    spbPal07: TSpeedButton;
-    spbPal08: TSpeedButton;
     spbPalDefault: TSpeedButton;
     pnPalette: TPanel;
+    mnSNESTiles: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure mnExitClick(Sender: TObject);
@@ -79,8 +72,7 @@ type
     procedure spbTilemapUpClick(Sender: TObject);
     procedure spbTilemapDownClick(Sender: TObject);
     procedure FormPaint(Sender: TObject);
-    procedure FormKeyDown(Sender: TObject; var Key: Word;
-      Shift: TShiftState);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure spbTilemapLineUpClick(Sender: TObject);
     procedure spbTilemapLineDownClick(Sender: TObject);
     procedure spbTilemapPageUpClick(Sender: TObject);
@@ -106,8 +98,7 @@ type
     procedure mnLoadTilemapClick(Sender: TObject);
     procedure FormMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
-    procedure FormMouseMove(Sender: TObject; Shift: TShiftState;
-      X, Y: Integer);
+    procedure FormMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
     procedure FormMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure cbDrawPatternsGridClick(Sender: TObject);
@@ -128,6 +119,7 @@ type
     procedure mnGENTilesClick(Sender: TObject);
     procedure spbPalDefaultClick(Sender: TObject);
     procedure spbPalLoadFromOffsetClick(Sender: TObject);
+    procedure mnSNESTilesClick(Sender: TObject);
   private
     { Private declarations }
     fPatterns, fTileMap, fPalette: TBitmap;
@@ -164,7 +156,7 @@ const
   PATTERNS_LEFT = 543;
   PATTERNS_TOP = TILEMAP_TOP;
   PAL_LEFT = PATTERNS_LEFT;
-  PAL_TOP = PATTERNS_TOP + 256 + 24;
+  PAL_TOP = PATTERNS_TOP + 256 + 24 - 8;
 
 var
   fmMainDialog: TfmMainDialog;
@@ -188,8 +180,8 @@ begin
     IntToHex(TilemapOffset shr 13, 3) + ', 16K:' +
     IntToHex(TilemapOffset shr 14, 2) + ', 32K:' +
     IntToHex(TilemapOffset shr 15, 2) + '] SELECTION (' +
-    IntToHex(fSelection.Left shr 4, 2) + ',' + IntToHex(fSelection.Top shr 4,
-    2) + ',' + IntToHex(fSelection.Right shr 4 - 1, 2) + ',' +
+    IntToHex(fSelection.Left shr 4, 2) + ',' + IntToHex(fSelection.Top shr 4, 2)
+    + ',' + IntToHex(fSelection.Right shr 4 - 1, 2) + ',' +
     IntToHex(fSelection.Bottom shr 4 - 1, 2) + ')';
   pnTilemap.Repaint;
   Canvas.Draw(TILEMAP_LEFT, TILEMAP_TOP, fTileMap);
@@ -211,8 +203,7 @@ begin
     DrawGrid(fPatterns, 16, 16);
 
   if cbDrawUsedTiles.Checked then
-    DrawUsedTiles(fPatterns, TilemapOffset, TilemapSx, fSelection,
-      fNESFile);
+    DrawUsedTiles(fPatterns, TilemapOffset, TilemapSx, fSelection, fNESFile);
 
   case DrawMode of
     DRAW_NORMAL:
@@ -225,11 +216,10 @@ begin
         fCurTileRect.Left := (fCurTile shr 4) shl 4;
         fCurTileRect.Top := (fCurTile mod 16) shl 4;
       end;
-    DRAW_8X16: // DONE
+    DRAW_8X16:
       begin
         fCurTileRect.Left := ((fCurTile mod 32) shr 1) shl 4;
-        fCurTileRect.Top := ((fCurTile mod 2) shl 4) +
-          ((fCurTile shr 5) shl 5);
+        fCurTileRect.Top := ((fCurTile mod 2) shl 4) + ((fCurTile shr 5) shl 5);
       end;
   end;
   fCurTileRect.Right := fCurTileRect.Left + 17;
@@ -299,7 +289,7 @@ begin
   begin
     PixelFormat := pf32Bit;
     Width := 16 * 8 * 2;
-    Height := 4 * 8 * 2;
+    Height := 8 * 8 * 2;
   end;
   TilemapSx := 32;
   TilemapSy := 33;
@@ -348,7 +338,7 @@ begin
   fisNESLoaded := true;
   mnLoadTilemap.Enabled := true;
   mnLoadPatterns.Enabled := true;
-//mnDecodeView.Enabled := true;
+  // mnDecodeView.Enabled := true;
   fisTilemapModified := False;
   sbMain.Panels[1].Text := '';
   TilemapOffset := 0;
@@ -496,9 +486,13 @@ begin
   if (TilemapOffset + TilemapSS) < fNESFile.PRGSize then
   begin
     inc(TilemapOffset);
-    fisTilemapChanged := true;
-    RedrawTilemap;
+  end
+  else
+  begin
+    TilemapOffset := fNESFile.PRGSize - TilemapSS;
   end;
+  fisTilemapChanged := true;
+  RedrawTilemap;
 end;
 
 procedure TfmMainDialog.spbTilemapLineUpClick(Sender: TObject);
@@ -506,9 +500,13 @@ begin
   if TilemapOffset >= TilemapSx then
   begin
     dec(TilemapOffset, TilemapSx);
-    fisTilemapChanged := true;
-    RedrawTilemap;
+  end
+  else
+  begin
+    TilemapOffset := 0;
   end;
+  fisTilemapChanged := true;
+  RedrawTilemap;
 end;
 
 procedure TfmMainDialog.spbTilemapLineDownClick(Sender: TObject);
@@ -516,9 +514,13 @@ begin
   if (TilemapOffset + TilemapSS + TilemapSx) < fNESFile.PRGSize then
   begin
     inc(TilemapOffset, TilemapSx);
-    fisTilemapChanged := true;
-    RedrawTilemap;
+  end
+  else
+  begin
+    TilemapOffset := fNESFile.PRGSize - TilemapSS;
   end;
+  fisTilemapChanged := true;
+  RedrawTilemap;
 end;
 
 procedure TfmMainDialog.spbTilemapPageUpClick(Sender: TObject);
@@ -526,9 +528,13 @@ begin
   if TilemapOffset >= TilemapSS then
   begin
     dec(TilemapOffset, TilemapSS);
-    fisTilemapChanged := true;
-    RedrawTilemap;
+  end
+  else
+  begin
+    TilemapOffset := 0;
   end;
+  fisTilemapChanged := true;
+  RedrawTilemap;
 end;
 
 procedure TfmMainDialog.spbTilemapPageDownClick(Sender: TObject);
@@ -536,9 +542,13 @@ begin
   if (TilemapOffset + TilemapSS + TilemapSS) < fNESFile.PRGSize then
   begin
     inc(TilemapOffset, TilemapSS);
-    fisTilemapChanged := true;
-    RedrawTilemap;
+  end
+  else
+  begin
+    TilemapOffset := fNESFile.PRGSize - TilemapSS;
   end;
+  fisTilemapChanged := true;
+  RedrawTilemap;
 end;
 
 procedure TfmMainDialog.spbTilemapHomeClick(Sender: TObject);
@@ -602,7 +612,8 @@ end;
 
 procedure TfmMainDialog.spbPatternsLineDownClick(Sender: TObject);
 begin
-  if (PatternsOffset + (256 * 8 * PatternMul) + (16 * 8 * PatternMul)) <= fNESFile.CHRSize then
+  if (PatternsOffset + (256 * 8 * PatternMul) + (16 * 8 * PatternMul)) <=
+    fNESFile.CHRSize then
   begin
     inc(PatternsOffset, (16 * 8 * PatternMul));
     RedrawPatterns;
@@ -620,7 +631,8 @@ end;
 
 procedure TfmMainDialog.spbPatternsPageDownClick(Sender: TObject);
 begin
-  if (PatternsOffset + (256 * 8 * PatternMul) + (256 * 8 * PatternMul)) <= fNESFile.CHRSize then
+  if (PatternsOffset + (256 * 8 * PatternMul) + (256 * 8 * PatternMul)) <=
+    fNESFile.CHRSize then
   begin
     inc(PatternsOffset, (256 * 8 * PatternMul));
     RedrawPatterns;
@@ -698,8 +710,9 @@ procedure TfmMainDialog.pmnPatternsGotoClick(Sender: TObject);
 var
   value: string;
 begin
-  value := inputbox('Input Offset', 'Please type new Patterns starting Offset', '');
-  if(value <> '') then
+  value := inputbox('Input Offset',
+    'Please type new Patterns starting Offset', '');
+  if (value <> '') then
   begin
     try
       PatternsOffset := StrToInt(value);
@@ -709,8 +722,8 @@ begin
         PatternsOffset := fNESFile.CHRSize - 1;
       RedrawPatterns;
     except
-      on Exception : EConvertError do
-      ShowMessage(Exception.Message);
+      on Exception: EConvertError do
+        ShowMessage(Exception.Message);
     end;
   end;
 end;
@@ -719,8 +732,9 @@ procedure TfmMainDialog.pmnTilesGotoClick(Sender: TObject);
 var
   value: string;
 begin
-  value := inputbox('Input Offset', 'Please type new Tiles starting Offset', '');
-  if(value <> '') then
+  value := inputbox('Input Offset',
+    'Please type new Tiles starting Offset', '');
+  if (value <> '') then
   begin
     try
       TilemapOffset := StrToInt(value);
@@ -730,8 +744,8 @@ begin
         TilemapOffset := fNESFile.PRGSize - 1;
       RedrawTilemap;
     except
-      on Exception : EConvertError do
-      ShowMessage(Exception.Message);
+      on Exception: EConvertError do
+        ShowMessage(Exception.Message);
     end;
   end;
 end;
@@ -797,11 +811,11 @@ begin
       end;
       RedrawPatterns;
     end
-    else if ((XX < 16) and (YY < 4)) then
+    else if ((XX < 16) and (YY < 8)) then
     begin
       Idx := XX + (YY shl 4);
-      pnPalette.Caption := 'IDX:' + IntToHex(Idx, 2) +
-        ', PAL: #' + IntToHex(CurPalette[Idx], 6);
+      pnPalette.Caption := 'IDX:' + IntToHex(Idx, 2) + ', PAL: #' +
+        IntToHex(CurPalette[Idx], 6);
     end;
 
     if fisSelDragged then
@@ -882,11 +896,9 @@ begin
           DRAW_VERTICAL:
             fDraggedTile := XX shl 4 + Y;
           DRAW_8X16:
-            fDraggedTile := (XX shl 1) + (Y mod 2) +
-              (Y shr 1) shl 5;
+            fDraggedTile := (XX shl 1) + (Y mod 2) + (Y shr 1) shl 5;
         end;
-        sbMain.Panels[0].Text := 'Dragged Tile: ' +
-          IntToHex(fDraggedTile, 2);
+        sbMain.Panels[0].Text := 'Dragged Tile: ' + IntToHex(fDraggedTile, 2);
       end;
     end;
   end;
@@ -917,8 +929,7 @@ begin
       Sx := TilemapSx;
       if TilemapSx >= 32 then
         Sx := 32;
-      if (X >= 0) and (X < Sx) and (Y >= 0) and (Y <= TilemapSy)
-      then
+      if (X >= 0) and (X < Sx) and (Y >= 0) and (Y <= TilemapSy) then
       begin
         CurPtr := fNESFile.PRGData;
         inc(Longint(CurPtr), TilemapOffset);
@@ -975,8 +986,7 @@ begin
     begin
       Error := PRGFileSave(Filename, fNESFile);
       if Error <> 0 then
-        Application.MessageBox
-          (PChar('Cannot Save PRG file!'#13#10'Error: ' +
+        Application.MessageBox(PChar('Cannot Save PRG file!'#13#10'Error: ' +
           IntToStr(Error)), 'Error!', 0);
     end;
     mnSaveTilemap.Enabled := False;
@@ -997,8 +1007,7 @@ begin
     begin
       Error := NESFileSave(Filename, fNESFile);
       if Error <> 0 then
-        Application.MessageBox
-          (PChar('Cannot Save NES file!'#13#10'Error: ' +
+        Application.MessageBox(PChar('Cannot Save NES file!'#13#10'Error: ' +
           IntToStr(Error)), 'Error!', 0);
     end;
     mnSaveTilemap.Enabled := False;
@@ -1013,11 +1022,11 @@ begin
   mn8x16Draw.Checked := False;
   case DrawMode of
     DRAW_NORMAL:
-      mnNormalDraw.Checked := True;
+      mnNormalDraw.Checked := true;
     DRAW_VERTICAL:
-      mnVerticalDraw.Checked := True;
+      mnVerticalDraw.Checked := true;
     DRAW_8X16:
-      mn8x16Draw.Checked := True;
+      mn8x16Draw.Checked := true;
   end;
   RedrawPatterns;
 end;
@@ -1046,15 +1055,18 @@ begin
   mnGBTiles.Checked := False;
   mn1BPPTiles.Checked := False;
   mnGENTiles.Checked := False;
+  mnSNESTiles.Checked := False;
   case TileFormat of
     TILE_1BPP:
-      mn1BPPTiles.Checked := True;
+        mn1BPPTiles.Checked := true;
     TILE_NES:
-      mnNESTiles.Checked := True;
+        mnNESTiles.Checked := true;
     TILE_GB:
-      mnGBTiles.Checked := True;
+        mnGBTiles.Checked := true;
     TILE_GEN:
-      mnGENTiles.Checked := True;
+        mnGENTiles.Checked := true;
+    TILE_SNES:
+        mnSNESTiles.Checked := true;
   end;
   RedrawPatterns;
   PaletteSetDefault;
@@ -1089,6 +1101,13 @@ begin
   TileFormatUpdate;
 end;
 
+procedure TfmMainDialog.mnSNESTilesClick(Sender: TObject);
+begin
+  TileFormat := TILE_SNES;
+  PatternMul := 4;
+  TileFormatUpdate;
+end;
+
 procedure TfmMainDialog.mnLoadPatternsClick(Sender: TObject);
 begin
   with odOpen as TOpenDialog do
@@ -1109,17 +1128,16 @@ begin
   end;
 end;
 
-
 procedure TfmMainDialog.FormActivate(Sender: TObject);
 begin
   if ParamCount = 1 then
   begin
     if NESFileRead(ParamStr(1), fNESFile) <> 0 then
       Application.MessageBox('Error Opening File', 'Error!', 0);
-      LoadInit;
-      fTileName := ParamStr(1);
-      fPatternName := ParamStr(1);
-      SetApplicationTitle;
+    LoadInit;
+    fTileName := ParamStr(1);
+    fPatternName := ParamStr(1);
+    SetApplicationTitle;
   end;
 end;
 
