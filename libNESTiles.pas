@@ -15,7 +15,7 @@ type
     Zero: array [0 .. 7] of Byte;
   end;
 
-  TTile = array [0 .. 32] of Byte;
+  TTile = array [0 .. 63] of Byte;
 
   TNESFile = record
     Header: TiNESHeader;
@@ -35,6 +35,7 @@ const
   TILE_GB = 2;
   TILE_GEN = 3;
   TILE_SNES = 4;
+  TILE_SNES_8BPP = 5;
 
   DrawMode: Byte = DRAW_NORMAL;
   TileFormat: Byte = TILE_NES;
@@ -43,11 +44,33 @@ const
   NESGBDefPal: Array [0 .. 3] of longint = ($00000000, $00FFFFFF, $00BBBBBB,
     $00888888);
 
-  HiColorPalDecodeTbl: Array [0 .. 7] of Byte = ($00, $34, $57, $74, $90, $AC,
+  GENPalDecodeTbl: Array [0 .. 7] of Byte = ($00, $34, $57, $74, $90, $AC,
     $CC, $FF);
 
-  DefHiColorPal: Array [0 .. 127] of longint = (
+  DefHiColorPal: Array [0 .. 255] of longint = (
     // B G R
+    $00000000, $00FFFFFF, $00BBBBBB, $00888888, $000000AA, $00AA00AA, $000055AA,
+    $00AAAAAA, $00555555, $00FF5555, $0055FF55, $00FFFF55, $005555FF, $00FF55FF,
+    $0055FFFF, $00FFFFFF, $00000000, $00141414, $00202020, $002C2C2C, $00383838,
+    $00444444, $00505050, $00616161, $00717171, $00818181, $00919191, $00A1A1A1,
+    $00B6B6B6, $00CACACA, $00E2E2E2, $00FFFFFF, $00FF0000, $00FF0040, $00FF007D,
+    $00FF00BE, $00FF00FF, $00BE00FF, $007D00FF, $004000FF, $000000FF, $000040FF,
+    $00007DFF, $0000BEFF, $0000FFFF, $0000FFBE, $0000FF7D, $0000FF40, $0000FF00,
+    $0040FF00, $007DFF00, $00BEFF00, $00FFFF00, $00FFBE00, $00FF7D00, $00FF4000,
+    $00FF7D7D, $00FF7D9D, $00FF7DBE, $00FF7DDE, $00FF7DFF, $00DE7DFF, $00BE7DFF,
+    $009D7DFF,
+
+    $00000000, $00FFFFFF, $00BBBBBB, $00888888, $000000AA, $00AA00AA, $000055AA,
+    $00AAAAAA, $00555555, $00FF5555, $0055FF55, $00FFFF55, $005555FF, $00FF55FF,
+    $0055FFFF, $00FFFFFF, $00000000, $00141414, $00202020, $002C2C2C, $00383838,
+    $00444444, $00505050, $00616161, $00717171, $00818181, $00919191, $00A1A1A1,
+    $00B6B6B6, $00CACACA, $00E2E2E2, $00FFFFFF, $00FF0000, $00FF0040, $00FF007D,
+    $00FF00BE, $00FF00FF, $00BE00FF, $007D00FF, $004000FF, $000000FF, $000040FF,
+    $00007DFF, $0000BEFF, $0000FFFF, $0000FFBE, $0000FF7D, $0000FF40, $0000FF00,
+    $0040FF00, $007DFF00, $00BEFF00, $00FFFF00, $00FFBE00, $00FF7D00, $00FF4000,
+    $00FF7D7D, $00FF7D9D, $00FF7DBE, $00FF7DDE, $00FF7DFF, $00DE7DFF, $00BE7DFF,
+    $009D7DFF,
+
     $00000000, $00FFFFFF, $00BBBBBB, $00888888, $000000AA, $00AA00AA, $000055AA,
     $00AAAAAA, $00555555, $00FF5555, $0055FF55, $00FFFF55, $005555FF, $00FF55FF,
     $0055FFFF, $00FFFFFF, $00000000, $00141414, $00202020, $002C2C2C, $00383838,
@@ -71,7 +94,7 @@ const
     $009D7DFF);
 
 var
-  CurPalette: Array [0 .. 127] of longint;
+  CurPalette: Array [0 .. 255] of longint;
 
 Function NESFileRead(Name: String; var NES: TNESFile): Integer;
 Function TilemapRead(Name: String; var NES: TNESFile): Integer;
@@ -165,13 +188,14 @@ asm
 @1:
   xor      eax, eax
   shr      TileLineA, 1
-  rcl      al, 1
+  rcr      al, 1
   shr      TileLineB, 1
-  rcl      al, 1
+  rcr      al, 1
   shr      TileLineC, 1
-  rcl      al, 1
+  rcr      al, 1
   shr      TileLineD, 1
-  rcl      al, 1
+  rcr      al, 1
+  ror      al, 4
   add      eax, Pal
   mov      eax, dword ptr CurPalette[eax*4]
   mov      dword ptr [edi], eax
@@ -914,9 +938,9 @@ begin
         begin
           Offset := longint(NES.PRGData) + PRGOffset + (i * 2);
           col := (Byte(ptr(Offset)^) shl 8) + Byte(ptr(Offset + 1)^);
-          R := HiColorPalDecodeTbl[(col shr 9) and 7];
-          G := HiColorPalDecodeTbl[(col shr 5) and 7];
-          B := HiColorPalDecodeTbl[(col shr 1) and 7];
+          R := GENPalDecodeTbl[(col shr 9) and 7];
+          G := GENPalDecodeTbl[(col shr 5) and 7];
+          B := GENPalDecodeTbl[(col shr 1) and 7];
           CurPalette[i] := (B shl 16) + (G shl 8) + R;
         end;
       end;
@@ -925,10 +949,10 @@ begin
         for i := 0 to 128 do
         begin
           Offset := longint(NES.PRGData) + PRGOffset + (i * 2);
-          col := (Byte(ptr(Offset)^) shl 8) + Byte(ptr(Offset + 1)^);
-          R := HiColorPalDecodeTbl[(col shr 9) and 7];
-          G := HiColorPalDecodeTbl[(col shr 5) and 7];
-          B := HiColorPalDecodeTbl[(col shr 1) and 7];
+          col := (Byte(ptr(Offset + 1)^) shl 8) + Byte(ptr(Offset)^);
+          B := ((col shr 0) and $001F) shl 3;
+          G := ((col shr 5) and $001F) shl 3;
+          R := ((col shr 10) and $001F) shl 3;
           CurPalette[i] := (B shl 16) + (G shl 8) + R;
         end;
       end;
